@@ -1,0 +1,154 @@
+<!-- frontend.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3-Tier CRUD Application</title>
+</head>
+<body>
+    <h1>Create Record</h1>
+    <form id="create-form">
+        <label for="value1">Value 1:</label>
+        <input type="text" id="value1" name="value1">
+        <label for="value2">Value 2:</label>
+        <input type="text" id="value2" name="value2">
+        <button type="submit">Create</button>
+    </form>
+
+    <h1>Existing Records</h1>
+    <table id="record-table">
+        <tr>
+            <th>ID</th>
+            <th>Value 1</th>
+            <th>Value 2</th>
+            <th>Actions</th>
+        </tr>
+    </table>
+
+    <h1>Update Record</h1>
+    <form id="update-form">
+        <input type="hidden" id="update-id" name="id">
+        <label for="update-value1">Value 1:</label>
+        <input type="text" id="update-value1" name="value1">
+        <label for="update-value2">Value 2:</label>
+        <input type="text" id="update-value2" name="value2">
+        <button type="submit">Update</button>
+        <button type="button" onclick="cancelUpdate()">Cancel</button>
+    </form>
+
+    <script>
+        // JavaScript code to handle form submission and display records
+        // You can use fetch or jQuery AJAX to interact with the backend
+
+        // Function to fetch existing records and populate the table
+        function getRecords() {
+            fetch('/read')
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.getElementById('record-table');
+                    table.innerHTML = `<tr>
+                        <th>ID</th>
+                        <th>Value 1</th>
+                        <th>Value 2</th>
+                        <th>Actions</th>
+                    </tr>`;
+                    data.forEach(record => {
+                        table.innerHTML += `<tr>
+                            <td id="${record.column1}">${record.column1}</td>
+                            <td id="${record.column2}">${record.column2}</td>
+                            <td><button onclick="showUpdateForm(${record.column1},'${record.column2}','${record.column2}')">Update</button></td>
+                            <td><button onclick="deleteRecord(${record.column1})">Delete</button></td>
+                        </tr>`;
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Function to handle form submission and create new record
+        document.getElementById('create-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {
+                value1: formData.get('value1'),
+                value2: formData.get('value2'),
+            };
+
+            fetch('/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+                getRecords(); // Refresh table after successful creation
+                event.target.reset(); // Clear the form fields
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Function to handle record deletion
+        function deleteRecord(id) {
+            const data = { id };
+            fetch('/delete', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+                getRecords(); // Refresh table after successful deletion
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Function to show the update form with pre-filled data
+        function showUpdateForm(id, value1, value2) {
+            const updateForm = document.getElementById('update-form');
+            document.getElementById('update-id').value = id;
+            document.getElementById('update-value1').value = value1;
+            document.getElementById('update-value2').value = value2;
+            updateForm.style.display = 'block';
+        }
+
+        // Function to hide the update form
+        function cancelUpdate() {
+            const updateForm = document.getElementById('update-form');
+            updateForm.style.display = 'none';
+        }
+
+        // Function to handle record update
+        document.getElementById('update-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {
+                id: formData.get('id'),
+                value1: formData.get('value1'),
+                value2: formData.get('value2'),
+            };
+
+            fetch('/update', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+                getRecords(); // Refresh table after successful update
+                cancelUpdate(); // Hide the update form
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Initial population of the table
+        getRecords();
+    </script>
+</body>
+</html>
