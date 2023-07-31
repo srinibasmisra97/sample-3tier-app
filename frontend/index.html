@@ -53,10 +53,11 @@
                     </tr>`;
                     data.forEach(record => {
                         table.innerHTML += `<tr>
+                            <td id="${record.id}">${record.id}</td>
                             <td id="${record.column1}">${record.column1}</td>
                             <td id="${record.column2}">${record.column2}</td>
-                            <td><button onclick="showUpdateForm(${record.column1},'${record.column2}','${record.column2}')">Update</button></td>
-                            <td><button onclick="deleteRecord(${record.column1})">Delete</button></td>
+                            <td><button onclick="showUpdateForm(${record.id},'${record.column1}','${record.column2}')">Update</button></td>
+                            <td><button onclick="deleteRecord(${record.id})">Delete</button></td>
                         </tr>`;
                     });
                 })
@@ -90,7 +91,7 @@
 
         // Function to handle record deletion
         function deleteRecord(id) {
-            const data = { id };
+            const data = { "id": id };
             fetch('/delete', {
                 method: 'DELETE',
                 headers: {
