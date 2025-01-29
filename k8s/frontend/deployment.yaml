@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/frontend:v1
+          ports:
+            - containerPort: 80
+          volumeMounts:
+          - name: nginx-config
+            mountPath: "/etc/nginx/nginx.conf"
+            subPath: "nginx.conf"
+            readOnly: true
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: frontend-nginx-conf
+          items:
+          - key: nginx.conf
+            path: nginx.conf

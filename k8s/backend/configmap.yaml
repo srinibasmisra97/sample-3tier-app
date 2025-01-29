@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  MYSQL_HOST: mysql-db
+  MYSQL_USER: root
+  MYSQL_DATABASE: testdb
+  MYSQL_TABLE: testtable
