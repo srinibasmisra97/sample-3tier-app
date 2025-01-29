@@ -12,28 +12,28 @@ spec:
   - http:
       paths:
       - path: /create
-        pathType: ImplementationSpecific
+        pathType: Exact
         backend:
           service:
             name: backend
             port:
               number: 5000
       - path: /read
-        pathType: ImplementationSpecific
+        pathType: Exact
         backend:
           service:
             name: backend
             port:
               number: 5000
       - path: /update
-        pathType: ImplementationSpecific
+        pathType: Exact
         backend:
           service:
             name: backend
             port:
               number: 5000
       - path: /delete
-        pathType: ImplementationSpecific
+        pathType: Exact
         backend:
           service:
             name: backend
