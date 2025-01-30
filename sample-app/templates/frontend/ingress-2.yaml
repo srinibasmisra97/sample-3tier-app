@@ -1,0 +1,44 @@
+{{- if and (eq .Values.frontend.servingMethod "ingress") (eq .Values.frontend.useIngressRouting true) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.frontend.deploymentName }}
+  namespace: {{ .Release.Name }}
+spec:
+  defaultBackend:
+    service:
+      name: {{ .Values.frontend.deploymentName }}
+      port:
+        number: {{ .Values.frontend.servingPort }}
+  rules:
+  - http:
+      paths:
+      - path: /create
+        pathType: Exact
+        backend:
+          service:
+            name: {{ .Values.backend.deploymentName }}
+            port:
+              number: {{ .Values.backend.servingPort }}
+      - path: /read
+        pathType: Exact
+        backend:
+          service:
+            name: {{ .Values.backend.deploymentName }}
+            port:
+              number: {{ .Values.backend.servingPort }}
+      - path: /update
+        pathType: Exact
+        backend:
+          service:
+            name: {{ .Values.backend.deploymentName }}
+            port:
+              number: {{ .Values.backend.servingPort }}
+      - path: /delete
+        pathType: Exact
+        backend:
+          service:
+            name: {{ .Values.backend.deploymentName }}
+            port:
+              number: {{ .Values.backend.servingPort }}
+{{ end }}

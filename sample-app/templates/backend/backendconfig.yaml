@@ -1,0 +1,10 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ .Values.backend.deploymentName }}
+  namespace: {{ .Release.Name }}
+spec:
+  healthCheck:
+    type: HTTP
+    port: {{ .Values.backend.servingPort }}
+    requestPath: /read

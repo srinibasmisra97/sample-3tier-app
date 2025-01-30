@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.db.deploymentName }}
+  namespace: {{ .Release.Name }}
+  labels:
+    app: {{ .Values.db.deploymentName }}
+spec:
+  ports:
+  - port: {{ .Values.db.servingPort }}
+    targetPort: 3306
+    name: {{ .Values.db.deploymentName }}
+  clusterIP: None
+  selector:
+    app: {{ .Values.db.deploymentName }}

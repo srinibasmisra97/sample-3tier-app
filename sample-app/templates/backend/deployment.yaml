@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.deploymentName }}
+  namespace: {{ .Release.Name }}
+  labels:
+    app: {{ .Values.backend.deploymentName }}
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: {{ .Values.backend.deploymentName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.backend.deploymentName }}
+    spec:
+      containers:
+        - name: {{ .Values.backend.deploymentName }}
+          image: {{ .Values.backend.image }}
+          ports:
+            - containerPort: {{ .Values.backend.servingPort }}
+          env:
+            - name: PORT
+              value: {{ .Values.backend.servingPort | quote }}
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.backend.deploymentName }}-config
+                  key: MYSQL_HOST
+            - name: MYSQL_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.backend.deploymentName }}-config
+                  key: MYSQL_USER
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.backend.deploymentName }}-config
+                  key: MYSQL_DATABASE
+            - name: MYSQL_TABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.backend.deploymentName }}-config
+                  key: MYSQL_TABLE
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.deploymentName }}-password
+                  key: MYSQL_PASSWORD

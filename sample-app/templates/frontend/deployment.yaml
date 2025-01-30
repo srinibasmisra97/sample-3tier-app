@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.frontend.deploymentName }}
+  namespace: {{ .Release.Name }}
+  labels:
+    app: {{ .Values.frontend.deploymentName }}
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: {{ .Values.frontend.deploymentName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.frontend.deploymentName }}
+    spec:
+      containers:
+        - name: {{ .Values.frontend.deploymentName }}
+          image: {{ .Values.frontend.image }}
+          ports:
+            - containerPort: 80
+          volumeMounts:
+          - name: {{ .Values.frontend.deploymentName }}-nginx-conf
+            mountPath: "/etc/nginx/nginx.conf"
+            subPath: "nginx.conf"
+            readOnly: true
+      volumes:
+      - name: {{ .Values.frontend.deploymentName }}-nginx-conf
+        configMap:
+          name: {{ .Values.frontend.deploymentName }}-nginx-conf
+          items:
+          - key: nginx.conf
+            path: nginx.conf

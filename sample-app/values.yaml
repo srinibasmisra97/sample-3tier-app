@@ -1,0 +1,26 @@
+db:
+  image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/mysql:v1
+  replicas: 1
+  deploymentName: mysqldb
+  servingPort: 3306
+  storageSize: 10Gi
+  passwordB64Encoded: cGFzc3dvcmQ=
+
+backend:
+  image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/backend:v2
+  deploymentName: backend
+  replicas: 1
+  servingPort: 8080
+  config:
+    MYSQL_USER: root
+    MYSQL_DATABASE: testdb
+    MYSQL_TABLE: testtable
+
+frontend:
+  image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/frontend:v1
+  deploymentName: frontend
+  replicas: 1
+  servingPort: 8080
+  servingMethod: gateway # supported values are "ingress" or "gateway"
+  useIngressRouting: false 
+  

@@ -1,0 +1,18 @@
+{{- if and (eq .Values.frontend.servingMethod "gateway") }}
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.frontend.deploymentName }}
+  namespace: {{ .Release.Name }}
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.frontend.deploymentName }}
+  rules:
+  - matches:
+    - path:
+        value: /
+    backendRefs:
+    - name: {{ .Values.frontend.deploymentName }}
+      port: {{ .Values.frontend.servingPort }}
+{{ end }}

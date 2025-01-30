@@ -1,41 +1,42 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mysql-db
+  name: {{ .Values.db.deploymentName }}
+  namespace: {{ .Release.Name }}
 spec:
   selector:
     matchLabels:
-      app: mysql-db 
-  serviceName: "mysql-db"
+      app: {{ .Values.db.deploymentName }} 
+  serviceName: {{ .Values.db.deploymentName }}
   replicas: 1
   minReadySeconds: 10
   template:
     metadata:
       labels:
-        app: mysql-db
+        app: {{ .Values.db.deploymentName }}
     spec:
       terminationGracePeriodSeconds: 10
       containers:
-      - name: mysql-db
-        image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/mysql:v1
+      - name: {{ .Values.db.deploymentName }}
+        image: {{ .Values.db.image }}
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: db-password
+              name: {{ .Values.db.deploymentName }}-password
               key: MYSQL_PASSWORD
         ports:
         - containerPort: 3306
-          name: mysql-db
+          name: {{ .Values.db.deploymentName }}
         volumeMounts:
-        - name: mysql-db-data
+        - name: {{ .Values.db.deploymentName }}-data
           mountPath: /var/lib/mysql
   volumeClaimTemplates:
   - metadata:
-      name: mysql-db-data
+      name: {{ .Values.db.deploymentName }}-data
     spec:
       accessModes: [ "ReadWriteOnce" ]
       storageClassName: "standard"
       resources:
         requests:
-          storage: 10Gi
+          storage: {{ .Values.db.storageSize }}

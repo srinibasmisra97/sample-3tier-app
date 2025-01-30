@@ -1,0 +1,346 @@
+NAME: demo-app
+LAST DEPLOYED: Thu Jan 30 12:48:01 2025
+NAMESPACE: default
+STATUS: pending-install
+REVISION: 1
+TEST SUITE: None
+HOOKS:
+MANIFEST:
+---
+# Source: sample-app/templates/namespace.yaml
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: demo-app
+  labels:
+    name: demo-app
+---
+# Source: sample-app/templates/db/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysqldb-password
+  namespace: demo-app
+data:
+  MYSQL_PASSWORD: cGFzc3dvcmQ=
+---
+# Source: sample-app/templates/backend/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: demo-app
+data:
+  MYSQL_HOST: mysqldb
+  MYSQL_USER: root
+  MYSQL_DATABASE: testdb
+  MYSQL_TABLE: testtable
+---
+# Source: sample-app/templates/frontend/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-nginx-conf
+  namespace: demo-app
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log;
+    pid /run/nginx.pid;
+
+    # Load dynamic modules. See /usr/share/doc/nginx/README.dynamic.
+    include /usr/share/nginx/modules/*.conf;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log  /var/log/nginx/access.log  main;
+
+        sendfile            on;
+        tcp_nopush          on;
+        tcp_nodelay         on;
+        keepalive_timeout   65;
+        types_hash_max_size 4096;
+
+        include             /etc/nginx/mime.types;
+        default_type        application/octet-stream;
+        # include /etc/nginx/conf.d/*.conf;
+
+        server {
+            listen       80;
+            listen       [::]:80;
+            server_name  _;
+            root         /usr/share/nginx/html;
+
+            # Load configuration files for the default server block.
+            include /etc/nginx/default.d/*.conf;
+
+            location ~ ^/(create|read|update|delete) {
+                proxy_pass http://backend:8080;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_pass_request_headers on;
+            }
+
+            error_page 404 /404.html;
+            location = /404.html {
+            }
+
+            error_page 500 502 503 504 /50x.html;
+            location = /50x.html {
+            }
+        }
+    }
+---
+# Source: sample-app/templates/backend/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: demo-app
+  labels:
+    app: backend
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"default": "backend"}'
+spec:
+  type: NodePort
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+# Source: sample-app/templates/db/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysqldb
+  namespace: demo-app
+  labels:
+    app: mysqldb
+spec:
+  ports:
+  - port: 3306
+    targetPort: 3306
+    name: mysqldb
+  clusterIP: None
+  selector:
+    app: mysqldb
+---
+# Source: sample-app/templates/frontend/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: demo-app
+  labels:
+    app: frontend
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80
+---
+# Source: sample-app/templates/backend/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: demo-app
+  labels:
+    app: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/backend:v2
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_HOST
+            - name: MYSQL_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_USER
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_DATABASE
+            - name: MYSQL_TABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_TABLE
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysqldb-password
+                  key: MYSQL_PASSWORD
+---
+# Source: sample-app/templates/frontend/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: demo-app
+  labels:
+    app: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/frontend:v1
+          ports:
+            - containerPort: 80
+          volumeMounts:
+          - name: frontend-nginx-conf
+            mountPath: "/etc/nginx/nginx.conf"
+            subPath: "nginx.conf"
+            readOnly: true
+      volumes:
+      - name: frontend-nginx-conf
+        configMap:
+          name: frontend-nginx-conf
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+---
+# Source: sample-app/templates/db/statefulesets.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysqldb
+  namespace: demo-app
+spec:
+  selector:
+    matchLabels:
+      app: mysqldb 
+  serviceName: mysqldb
+  replicas: 1
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: mysqldb
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: mysqldb
+        image: us-central1-docker.pkg.dev/prj-gcp-inframod-01/srini-demo-app/mysql:v1
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysqldb-password
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 3306
+          name: mysqldb
+        volumeMounts:
+        - name: mysqldb-data
+          mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+  - metadata:
+      name: mysqldb-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 10Gi
+---
+# Source: sample-app/templates/frontend/ingress-2.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: demo-app
+spec:
+  defaultBackend:
+    service:
+      name: frontend
+      port:
+        number: 8080
+  rules:
+  - http:
+      paths:
+      - path: /create
+        pathType: Exact
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+      - path: /read
+        pathType: Exact
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+      - path: /update
+        pathType: Exact
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+      - path: /delete
+        pathType: Exact
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+---
+# Source: sample-app/templates/backend/backendconfig.yaml
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: backend
+  namespace: demo-app
+spec:
+  healthCheck:
+    type: HTTP
+    port: 8080
+    requestPath: /read
+

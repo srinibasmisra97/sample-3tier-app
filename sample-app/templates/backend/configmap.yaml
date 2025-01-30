@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.backend.deploymentName }}-config
+  namespace: {{ .Release.Name }}
+data:
+  MYSQL_HOST: {{ .Values.db.deploymentName }}
+  MYSQL_USER: {{ .Values.backend.config.MYSQL_USER }}
+  MYSQL_DATABASE: {{ .Values.backend.config.MYSQL_DATABASE }}
+  MYSQL_TABLE: {{ .Values.backend.config.MYSQL_TABLE }}

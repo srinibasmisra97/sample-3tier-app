@@ -1,0 +1,13 @@
+{{- if and (eq .Values.frontend.servingMethod "ingress") (eq .Values.frontend.useIngressRouting false) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.frontend.deploymentName }}
+  namespace: {{ .Release.Name }}
+spec:
+  defaultBackend:
+    service:
+      name: {{ .Values.frontend.deploymentName }}
+      port:
+        number: {{ .Values.frontend.servingPort }}
+{{ end }}
